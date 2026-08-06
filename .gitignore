@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+*.rar
+*.zip
+*.7z
+*.exe
+
+# Ignore all markdown files except README.md
+*.md
+!README.md
+!readme.md
