@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "Z.AI Bridge 8.0",
+  "version": "8.0.0",
+  "description": "Z.AI Bridge 8.0 — Proxy + Multi-Account + Auto-Input + Anti-WAF + Token Tracking",
+  "icons": {
+    "16": "Icon/Icon16.png",
+    "32": "Icon/Icon32.png",
+    "64": "Icon/Icon64.png",
+    "128": "Icon/Icon128.png"
+  },
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "proxy",
+    "alarms",
+    "cookies",
+    "webRequest",
+    "scripting",
+    "tabs",
+    "sidePanel",
+    "downloads",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://chat.z.ai/*",
+    "https://*.z.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_icon": {
+      "16": "Icon/Icon16.png",
+      "32": "Icon/Icon32.png",
+      "64": "Icon/Icon64.png",
+      "128": "Icon/Icon128.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "Z.AI Bridge 8.0 — proxy + accounts"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chat.z.ai/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js", "dom-optimizer.js", "send-engine.js"],
+      "matches": ["https://chat.z.ai/*"]
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
+}

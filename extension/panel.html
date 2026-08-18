@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Z.AI Bridge 8.0</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 100%; min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e9eef5 100%);
+      color: #2d3748;
+    }
+    body.dark {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
+      color: #e2e8f0;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -20%;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .header-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .server-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+    .server-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #ff5252;
+      box-shadow: 0 0 6px #ff5252;
+      transition: all 0.3s;
+    }
+    .server-dot.online { background: #69f0ae; box-shadow: 0 0 6px #69f0ae; }
+
+    .btn-icon {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 5px 9px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.35); }
+
+    /* Counter cards */
+    .counter { display: flex; gap: 10px; position: relative; }
+    .counter-item {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 8px 12px;
+      flex: 1;
+    }
+    .counter-value { font-size: 22px; font-weight: 700; line-height: 1; }
+    .counter-label { font-size: 10px; opacity: 0.85; margin-top: 3px; }
+    .warn { color: #ffd54f !important; }
+    .danger { color: #ff8a80 !important; }
+
+    /* ── Tab Navigation ── */
+    .tab-bar {
+      display: flex;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    body.dark .tab-bar {
+      background: rgba(255,255,255,0.04);
+      border-bottom-color: rgba(255,255,255,0.08);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 4px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    body.dark .tab-btn { color: #666; }
+    .tab-btn:hover { color: #667eea; background: rgba(102,126,234,0.05); }
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: rgba(102,126,234,0.06);
+    }
+    body.dark .tab-btn.active { color: #a5b4fc; border-bottom-color: #a5b4fc; }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Account Tab ── */
+    .body { padding: 12px; }
+    .actions { display: flex; gap: 8px; margin-bottom: 12px; }
+    .actions button { flex: 1; padding: 9px; border-radius: 10px; font-weight: 500; transition: all 0.2s; }
+
+    .toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search-box {
+      flex: 1; padding: 7px 11px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(10px);
+      font-size: 12px; color: inherit; outline: none;
+      transition: all 0.2s;
+    }
+    .search-box:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+    body.dark .search-box { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+    .filter-select {
+      padding: 7px 9px; border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(10px);
+      font-size: 12px; color: inherit; cursor: pointer; outline: none;
+    }
+    body.dark .filter-select { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+
+    .section-title { font-weight: 600; margin: 4px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.6; }
+
+    .session-item {
+      padding: 11px 12px; border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px; margin-bottom: 7px;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      transition: all 0.2s;
+    }
+    .session-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    body.dark .session-item { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
+    .session-item.active { background: rgba(102,126,234,0.1); border-color: rgba(102,126,234,0.4); box-shadow: 0 2px 12px rgba(102,126,234,0.15); }
+    body.dark .session-item.active { background: rgba(102,126,234,0.15); }
+
+    .session-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .session-info { flex: 1; min-width: 0; }
+    .session-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .session-email { font-size: 11px; color: #667eea; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.dark .session-email { color: #a5b4fc; }
+    .session-meta { font-size: 10px; color: #888; margin-top: 3px; }
+    body.dark .session-meta { color: #999; }
+    .session-req { font-size: 11px; color: #555; margin-top: 5px; display: flex; gap: 12px; }
+    body.dark .session-req { color: #aaa; }
+    .session-req b { color: #667eea; font-weight: 600; }
+    body.dark .session-req b { color: #a5b4fc; }
+
+    .session-status { font-size: 10px; margin-top: 5px; padding: 3px 8px; border-radius: 6px; display: inline-block; font-weight: 500; }
+    .status-waf { background: rgba(244,67,54,0.12); color: #c62828; }
+    .status-exp-warn { background: rgba(255,152,0,0.12); color: #e65100; }
+    .status-expired { background: rgba(244,67,54,0.12); color: #c62828; }
+    body.dark .status-waf, body.dark .status-expired { background: rgba(244,67,54,0.2); color: #ff8a80; }
+    body.dark .status-exp-warn { background: rgba(255,152,0,0.2); color: #ffb74d; }
+
+    .session-actions-r { display: flex; gap: 4px; margin-top: 7px; }
+    .session-actions { display: flex; gap: 4px; }
+
+    /* ── Proxy Tab ── */
+    .proxy-wrap { padding: 14px 16px; }
+
+    .proxy-section-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: #667eea; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    body.dark .proxy-section-title { color: #a5b4fc; }
+
+    .toggle-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(10px);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.08);
+      margin-bottom: 14px;
+    }
+    body.dark .toggle-container { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+    .toggle-label { font-size: 13px; font-weight: 500; }
+
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.1);
+      transition: .3s; border-radius: 24px;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    body.dark .slider { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
+    .slider:before {
+      position: absolute; content: "";
+      height: 16px; width: 16px;
+      left: 3px; bottom: 3px;
+      background-color: white; transition: .3s;
+      border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    input:checked + .slider { background-color: #667eea; }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    .quick-paste-box {
+      background: rgba(102,126,234,0.04);
+      border: 1px dashed rgba(102,126,234,0.3);
+      border-radius: 10px; padding: 12px; margin-bottom: 14px;
+    }
+    .quick-paste-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: #667eea;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 7px;
+    }
+    body.dark .quick-paste-label { color: #a5b4fc; }
+    .quick-paste-tip { font-size: 9px; text-transform: none; color: #999; font-weight: 400; }
+
+    .proxy-form-group { margin-bottom: 12px; }
+    .proxy-form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .proxy-form-row .proxy-form-group { flex: 1; margin-bottom: 0; }
+
+    .proxy-label {
+      display: block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: #888; margin-bottom: 5px;
+    }
+    body.dark .proxy-label { color: #666; }
+
+    .proxy-input, .proxy-select, .proxy-textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 8px; padding: 8px 11px;
+      color: inherit; font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s; outline: none;
+    }
+    body.dark .proxy-input, body.dark .proxy-select, body.dark .proxy-textarea {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.1);
+    }
+    .proxy-input:focus, .proxy-select:focus, .proxy-textarea:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+    }
+    .proxy-textarea { height: 48px; resize: none; font-family: monospace; font-size: 11px; }
+    .proxy-select option { background: #1a1a2e; color: #e2e8f0; }
+
+    .proxy-btn-group { display: flex; gap: 10px; margin-top: 4px; }
+    .proxy-btn-group button { flex: 1; }
+
+    /* ── Settings Tab ── */
+    #settingsView { padding: 16px; }
+    .settings-group { margin-bottom: 22px; }
+    .settings-group h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+    .theme-toggle { display: flex; gap: 8px; }
+    .theme-toggle button { flex: 1; padding: 10px; border-radius: 10px; }
+    .theme-toggle button.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 2px 8px rgba(102,126,234,0.3); }
+    .file-input-wrap { margin-top: 8px; }
+    .file-input-wrap input[type=file] { width: 100%; margin-bottom: 8px; font-size: 12px; }
+    .import-textarea { width: 100%; min-height: 100px; box-sizing: border-box; font-family: monospace; font-size: 11px; padding: 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; background: rgba(255,255,255,0.5); backdrop-filter: blur(10px); color: inherit; outline: none; }
+    body.dark .import-textarea { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+    .hint { font-size: 11px; color: #888; margin-top: 6px; }
+    .settings-input { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; background: rgba(255,255,255,0.5); backdrop-filter: blur(10px); color: inherit; outline: none; }
+    body.dark .settings-input { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+    .settings-input:focus { border-color: #667eea; }
+
+    /* ── Shared Buttons ── */
+    button { padding: 6px 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 2px 8px rgba(102,126,234,0.3); }
+    .btn-primary:hover { box-shadow: 0 4px 12px rgba(102,126,234,0.45); transform: translateY(-1px); }
+    .btn-danger { background: rgba(244,67,54,0.1); color: #e53935; }
+    .btn-danger:hover { background: rgba(244,67,54,0.2); }
+    body.dark .btn-danger { background: rgba(244,67,54,0.15); color: #ff8a80; }
+    .btn-ghost { background: rgba(0,0,0,0.05); color: inherit; }
+    .btn-ghost:hover { background: rgba(0,0,0,0.1); }
+    body.dark .btn-ghost { background: rgba(255,255,255,0.05); }
+    body.dark .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-tiny { padding: 3px 8px; font-size: 10px; border-radius: 6px; }
+    .btn-cyan { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: #fff; box-shadow: 0 2px 8px rgba(6,182,212,0.3); }
+    .btn-cyan:hover { box-shadow: 0 4px 12px rgba(6,182,212,0.45); transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1px solid rgba(0,0,0,0.12); color: inherit; }
+    body.dark .btn-outline { border-color: rgba(255,255,255,0.12); }
+    .btn-outline:hover { background: rgba(0,0,0,0.05); }
+    body.dark .btn-outline:hover { background: rgba(255,255,255,0.06); }
+
+    .empty { text-align: center; color: #aaa; padding: 32px 8px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: -50px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30,30,46,0.95);
+      backdrop-filter: blur(10px);
+      color: white; padding: 9px 18px;
+      border-radius: 10px; font-size: 12px;
+      z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      opacity: 0;
+    }
+    .toast.show { bottom: 16px; opacity: 1; }
+    .toast.warn { background: rgba(230,81,0,0.95); }
+    .toast.danger { background: rgba(198,40,40,0.95); }
+    .toast.success { background: rgba(27,94,32,0.95); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Z.AI Bridge 8.0
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="server-badge">
+          <div class="server-dot" id="serverDot"></div>
+          <span id="serverText">Offline</span>
+        </div>
+        <button class="btn-icon" id="btnSettings" title="Cài đặt">⚙</button>
+      </div>
+    </div>
+    <div class="counter">
+      <div class="counter-item">
+        <span class="counter-value" id="countMinute">0</span>
+        <div class="counter-label">req/phút · giới hạn <span id="limitMinute">10</span></div>
+      </div>
+      <div class="counter-item">
+        <span class="counter-value" id="countHour">0</span>
+        <div class="counter-label">req/giờ · giới hạn <span id="limitHour">60</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab Bar ── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabAccounts" onclick="switchTab('accounts')">👤 Tài khoản</button>
+    <button class="tab-btn" id="tabProxy" onclick="switchTab('proxy')">🔌 Proxy</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       VIEW: Accounts
+  ══════════════════════════════════════ -->
+  <div class="view active" id="viewAccounts">
+    <div class="body">
+      <div class="actions">
+        <button class="btn-primary" id="btnBackup">💾 Lưu session hiện tại</button>
+        <button class="btn-ghost" id="btnReset">↻ Reset counter</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 Tìm theo tên hoặc email..." />
+        <select class="filter-select" id="filterSelect">
+          <option value="all">Tất cả</option>
+          <option value="active">🟢 Đang active</option>
+          <option value="token-ok">Token còn hạn</option>
+          <option value="token-warn">⏰ Sắp hết hạn</option>
+          <option value="token-expired">⏰ Đã hết hạn</option>
+          <option value="waf">🚫 WAF blocked</option>
+        </select>
+      </div>
+      <div class="section-title" id="sessionCountLabel">Tài khoản đã lưu</div>
+      <div id="sessionList"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       VIEW: Proxy
+  ══════════════════════════════════════ -->
+  <div class="view" id="viewProxy">
+    <div class="proxy-wrap">
+
+      <!-- Toggle -->
+      <div class="toggle-container">
+        <span class="toggle-label">🔌 Enable Proxy Socket</span>
+        <label class="switch">
+          <input type="checkbox" id="proxyEnabled">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Quick Paste -->
+      <div class="quick-paste-box">
+        <div class="quick-paste-label">
+          <span>⚡ Quick Paste</span>
+          <span class="quick-paste-tip">ip:port:user:pass</span>
+        </div>
+        <textarea class="proxy-textarea" id="proxyQuickPaste" placeholder="Dán chuỗi proxy vào đây để tự điền..."></textarea>
+      </div>
+
+      <!-- Type + Host -->
+      <div class="proxy-form-row">
+        <div class="proxy-form-group" style="flex:0.35">
+          <label class="proxy-label" for="proxyType">Type</label>
+          <select class="proxy-select" id="proxyType">
+            <option value="http">HTTP</option>
+            <option value="https">HTTPS</option>
+            <option value="socks5">SOCKS5</option>
+          </select>
+        </div>
+        <div class="proxy-form-group" style="flex:0.65">
+          <label class="proxy-label" for="proxyHost">Host Address</label>
+          <input type="text" class="proxy-input" id="proxyHost" placeholder="127.0.0.1">
+        </div>
+      </div>
+
+      <!-- Port -->
+      <div class="proxy-form-group">
+        <label class="proxy-label" for="proxyPort">Port</label>
+        <input type="number" class="proxy-input" id="proxyPort" placeholder="1080" min="1" max="65535">
+      </div>
+
+      <!-- Auth -->
+      <div class="proxy-form-row">
+        <div class="proxy-form-group">
+          <label class="proxy-label" for="proxyUser">Username (tuỳ chọn)</label>
+          <input type="text" class="proxy-input" id="proxyUser" placeholder="User">
+        </div>
+        <div class="proxy-form-group">
+          <label class="proxy-label" for="proxyPass">Password (tuỳ chọn)</label>
+          <input type="password" class="proxy-input" id="proxyPass" placeholder="Pass">
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="proxy-btn-group">
+        <button class="btn-outline" id="btnProxyReset">Reset</button>
+        <button class="btn-cyan" id="btnProxySave">Apply Changes</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       VIEW: Settings (hidden, toggled via ⚙)
+  ══════════════════════════════════════ -->
+  <div id="settingsView" style="display:none;">
+    <div class="settings-group">
+      <h3>Giới hạn request</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <label style="flex:1;min-width:80px;">req/giờ
+          <input type="number" id="cfgPerHour" min="1" class="settings-input" />
+        </label>
+        <label style="flex:1;min-width:80px;">req/phút
+          <input type="number" id="cfgPerMinute" min="1" class="settings-input" />
+        </label>
+        <label style="flex:1;min-width:80px;">Cảnh báo (%)
+          <input type="number" id="cfgWarnPercent" min="1" max="100" class="settings-input" />
+        </label>
+      </div>
+      <button class="btn-primary" id="btnSaveQuota" style="width:100%;padding:10px;margin-top:10px;">💾 Lưu giới hạn</button>
+      <div class="hint" id="quotaResult"></div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Giao diện</h3>
+      <div class="theme-toggle">
+        <button id="themeLight" class="btn-ghost">☀ Sáng</button>
+        <button id="themeDark" class="btn-ghost">🌙 Tối</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Xuất dữ liệu</h3>
+      <button class="btn-primary" id="btnExport" style="width:100%;padding:10px;">⬇ Xuất tất cả tài khoản (JSON)</button>
+      <div class="hint">Tải file backup chứa toàn bộ session đã lưu.</div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Nhập dữ liệu</h3>
+      <div class="file-input-wrap">
+        <input type="file" id="importFile" accept=".json,application/json" />
+      </div>
+      <div class="hint">Hoặc dán JSON trực tiếp:</div>
+      <textarea class="import-textarea" id="importText" placeholder='[{"name":"...","email":"...","cookies":[...],...}]'></textarea>
+      <button class="btn-primary" id="btnImport" style="width:100%;padding:10px;margin-top:8px;">⬆ Nhập (ghi đè nếu trùng)</button>
+      <div class="hint" id="importResult"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="panel.js"></script>
+</body>
+</html>

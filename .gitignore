@@ -1,0 +1,7 @@
+node_modules/
+dist/
+rate-limit-state.json
+usage-stats.json
+*.log
+.DS_Store
+Thumbs.db
