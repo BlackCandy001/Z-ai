@@ -1,6 +1,6 @@
 # Z.AI Bridge V8.0 — Universal Extension & Server Bridge
 **Version**: 8.0.0 (Release Build v1.0.8)  
-**Tác giả**: Z.AI Bridge Engineering Team  
+**Tác giả**: BlackCandy 🍫  
 **Mục đích**: Cầu nối 2 chiều hiệu năng cao (Reverse Proxy & Extension Bridge) giữa VS Code (Zen / Cline / Roo Code) và trình duyệt Z.AI (`chat.z.ai`), hỗ trợ đầy đủ các mô hình AI thế hệ mới nhất như **GLM-5.2**, **GLM-5.1** & **Deep Think**.
 
 ---
@@ -103,4 +103,4 @@ npm run build:prod
 
 ---
 
-© 2026 Z.AI Bridge Engineering Team. Released for Advanced Agentic Coding Integration.
+© 2026 BlackCandy 🍫. Released for Advanced Agentic Coding Integration.
