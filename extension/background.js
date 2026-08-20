@@ -22,7 +22,7 @@ const DEFAULT_QUOTA = { perHour: 60, perMinute: 10, warnPercent: 80 };
 const STORAGE_KEY = 'zaiAccountManager';
 const LOG_KEY = 'zaiRequestLog';
 const WAF_KEY = 'zaiWafState';
-const WAF_COOLDOWN_MS = 60000;
+const WAF_COOLDOWN_MS = 300000; // 5 phút — đồng bộ với rate-limiter.ts và content.js
 
 // ===== STATE =====
 let ws = null;

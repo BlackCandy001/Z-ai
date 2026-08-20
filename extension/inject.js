@@ -78,8 +78,13 @@
       
       const response = await originalFetch.apply(this, modifiedArgs);
       
-      if (response.status === 403 || response.status === 429 || response.status === 503) {
-        console.log('[Inject] 🚨 WAF/Rate limit detected! Status:', response.status);
+      const respContentType = response.headers.get('Content-Type') || '';
+      const isHtmlBlockPage = respContentType.toLowerCase().includes('text/html');
+
+      if (response.status === 403 || response.status === 405 ||
+          response.status === 429 || response.status === 503 ||
+          (isHtmlBlockPage && response.status >= 400)) {
+        console.log('[Inject] 🚨 WAF/Rate limit detected! Status:', response.status, 'CT:', respContentType);
         window.postMessage({
           type: 'Z_AI_WAF_BLOCK',
           status: response.status
@@ -87,7 +92,7 @@
         return response;
       }
       
-      const contentType = response.headers.get('Content-Type') || '';
+      const contentType = respContentType;
 
       if (contentType.toLowerCase().includes('text/event-stream') || url.includes('/chat/completions')) {
         console.log('[Inject] SSE Stream detected. Intercepting via TransformStream...');

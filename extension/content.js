@@ -107,7 +107,14 @@ window.addEventListener('message', (event) => {
   } else if (data.type === 'Z_AI_WAF_BLOCK') {
     console.log('[Content] 🚨 WAF block! Status:', data.status);
     window.__zai.isWafBlocked = true;
-    updateIndicator('🚨 WAF BLOCKED! Solve CAPTCHA (auto-retry in 60s)', '#FF5722');
+    updateIndicator('🚨 WAF BLOCKED! Solve CAPTCHA (auto-retry in 5m)', '#FF5722');
+    stopHangDetector();
+
+    // ⭐ Resolve pending request on server immediately so server never hangs for 20 minutes
+    if (window.__zai.currentRequestId !== null || window.__zai.requestStartTime > 0) {
+      window.__zai.isStreaming = false;
+      safeSend({ type: 'stream_end', requestId: window.__zai.currentRequestId, error: 'WAF_BLOCKED: HTTP ' + (data.status || '405') });
+    }
     safeSend({ type: 'waf_block', status: data.status, requestId: window.__zai.currentRequestId });
     // [NEW 8.0] WAF bridge: forward to background.js for unified WAF state (Account Manager)
     chrome.runtime.sendMessage({ action: 'waf_block_from_content', status: data.status }).catch(() => {});
@@ -116,8 +123,8 @@ window.addEventListener('message', (event) => {
       window.__zai.isWafBlocked = false;
       window.__zai.wafUnlockTimer = null;
       updateIndicator('🟡 WAF cooldown ended — retry allowed', '#FF9800');
-      console.log('[Content] 🛡️ WAF auto-unlocked after 60s.');
-    }, 60000);
+      console.log('[Content] 🛡️ WAF auto-unlocked after 300s.');
+    }, 300000);
   } else if (data.type === 'Z_AI_USAGE' && data.usage) {
     console.log('[Content] 📊 Usage:', JSON.stringify(data.usage));
     safeSend({ type: 'usage', usage: data.usage, requestId: window.__zai.currentRequestId });

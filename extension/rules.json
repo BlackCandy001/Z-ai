@@ -58,15 +58,6 @@
     }
   },
   {
-    "id": 5,
-    "priority": 2,
-    "action": { "type": "block" },
-    "condition": {
-      "urlFilter": "||rum.aliyuncs.com",
-      "resourceTypes": ["script", "xmlhttprequest", "ping", "other"]
-    }
-  },
-  {
     "id": 6,
     "priority": 2,
     "action": { "type": "block" },

@@ -1,4 +1,5 @@
 import * as readline from 'readline';
+import * as crypto from 'crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { RateLimiter, AccountRateLimiter, RateLimitConfig, DEFAULT_RATE_LIMIT_CONFIG } from './rate-limiter';
 import { UsageTracker } from './src/utils/usage-tracker';
@@ -179,6 +180,12 @@ export class ZChat {
                                 this._lastUsage = { promptTokens: msg.usage.prompt_tokens || 0, completionTokens: msg.usage.completion_tokens || 0, totalTokens: msg.usage.total_tokens || 0 };
                             } else if (msg.type === 'stream_end' && this.currentEndResolver) {
                                 this.currentEndResolver(msg.error);
+                            } else if (msg.type === 'waf_block') {
+                                console.warn(`[System] 🚨 WAF block received from browser (status=${msg.status}). Activating cooldown + resolving pending stream.`);
+                                this.rateLimiter.reportWAFBlock(this._activeUserId || undefined);
+                                if (this.currentEndResolver) {
+                                    this.currentEndResolver('WAF blocked (HTTP ' + (msg.status || '405') + ') — cooldown activated');
+                                }
                             } else if (msg.type === 'page_ready') {
                                 console.log(`[System] ✅ page_ready signal received (context: ${msg.context}${msg.timedOut ? ', timedOut' : ''})`);
                                 if (this._activeCtx?.pageReadyResolve) {
@@ -215,6 +222,12 @@ export class ZChat {
                                 this._lastUsage = { promptTokens: msg.usage.prompt_tokens || 0, completionTokens: msg.usage.completion_tokens || 0, totalTokens: msg.usage.total_tokens || 0 };
                             } else if (msg.type === 'stream_end' && this.currentEndResolver) {
                                 this.currentEndResolver(msg.error);
+                            } else if (msg.type === 'waf_block') {
+                                console.warn(`[System] 🚨 WAF block received from browser (status=${msg.status}). Activating cooldown + resolving pending stream.`);
+                                this.rateLimiter.reportWAFBlock(this._activeUserId || undefined);
+                                if (this.currentEndResolver) {
+                                    this.currentEndResolver('WAF blocked (HTTP ' + (msg.status || '405') + ') — cooldown activated');
+                                }
                             } else if (msg.type === 'page_ready') {
                                 console.log(`[System] ✅ page_ready signal received (context: ${msg.context}${msg.timedOut ? ', timedOut' : ''})`);
                                 if (this._activeCtx?.pageReadyResolve) {
@@ -433,18 +446,17 @@ export class ZChat {
         console.log(`[ZChat] ⏳ Random pre-send delay: ${delayMs}ms (anti-WAF jitter)...`);
         await new Promise(r => setTimeout(r, delayMs));
 
-        // Send prompt over available websocket connections (Offscreen Document 24/7 + Content Script)
-        const payload = JSON.stringify({ action: 'send_prompt', prompt, isNewChat, isSearch });
-        let sentCount = 0;
-
-        if (this.offscreenConnection && this.offscreenConnection.readyState === 1) {
-            try { this.offscreenConnection.send(payload); sentCount++; } catch (e) {}
-        }
-        if (this.contentConnection && this.contentConnection.readyState === 1) {
-            try { this.contentConnection.send(payload); sentCount++; } catch (e) {}
-        }
-        if (sentCount === 0 && this.wsConnection && this.wsConnection.readyState === 1) {
-            try { this.wsConnection.send(payload); } catch (e) {}
+        // Send prompt over available websocket connections (single-target prioritized to avoid double-dispatch)
+        const requestId = crypto.randomUUID();
+        const payload = JSON.stringify({ action: 'send_prompt', requestId, prompt, isNewChat, isSearch });
+        
+        const target = (this.offscreenConnection && this.offscreenConnection.readyState === 1)
+            ? this.offscreenConnection
+            : ((this.contentConnection && this.contentConnection.readyState === 1)
+                ? this.contentConnection
+                : this.wsConnection);
+        if (target && target.readyState === 1) {
+            try { target.send(payload); } catch (e) {}
         }
 
         // Wait until request finishes (event-driven, no polling — Issue #2 fix)
@@ -482,6 +494,14 @@ export class ZChat {
         clearInterval(progressInterval);
         if (result) {
             requestError = result;
+        }
+
+        // [Anti-WAF] Empty Stream Defense: Nếu stream kết thúc rỗng không có lỗi trong < 15s → Nghi ngờ HTML Block Page
+        const elapsedSec = (Date.now() - requestStartTime) / 1000;
+        if (!requestError && chunkCount === 0 && elapsedSec < 15) {
+            console.warn('[ZChat] 🚨 Stream ended with 0 chunks in ' + elapsedSec.toFixed(1) + 's — suspected WAF block page (HTML/405). Activating cooldown.');
+            this.rateLimiter.reportWAFBlock(this._activeUserId || undefined);
+            requestError = 'WAF block page detected (empty stream)';
         }
 
         // Reset phase
@@ -562,7 +582,6 @@ async function main() {
         maxRequestsPerMinute: 10,
         maxRequestsPerHour: 59,
         minIntervalMs: 3000,
-        cooldownAfterWAFMs: 60000,
     });
     await chatEngine.initBrowser();
     

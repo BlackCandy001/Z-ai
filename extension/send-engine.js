@@ -179,6 +179,36 @@
   }
 
   // =========================================================
+  // Module 1.5: Human-Like Cadence Typing (Anti-WAF Behavioral)
+  // =========================================================
+  async function typeLikeHuman(textarea, text) {
+    console.log(`[SendEngine] ⌨️ Typing prompt like human (${text.length} chars)...`);
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      'value'
+    ).set;
+    const parts = text.split(/(\s+)/); // split by words while preserving whitespace
+    let acc = '';
+    const startTime = Date.now();
+    for (const part of parts) {
+      if (Date.now() - startTime > 15000) { // Safety guard: max 15s typing
+        nativeSetter.call(textarea, text);
+        break;
+      }
+      acc += part;
+      nativeSetter.call(textarea, acc);
+      const tracker = textarea._valueTracker;
+      if (tracker) tracker.setValue(acc.slice(0, acc.length - part.length));
+      triggerReactFiberHandler(textarea, 'input', { target: textarea, currentTarget: textarea, bubbles: true });
+      textarea.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: part.slice(-1) || ' ' }));
+      await new Promise((r) => setTimeout(r, 20 + Math.floor(Math.random() * 45)));
+    }
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  // =========================================================
   // Module 2: Background-Aware Smart Event Dispatcher
   // =========================================================
   async function dispatchBackgroundAwareSend(textarea, sendBtn) {
@@ -273,6 +303,13 @@
   // Main: handleSendPrompt — nhận data từ postMessage payload
   // =========================================================
   async function handleSendPrompt(prompt, isSearch, isWafBlocked, lastRequestTime, requestId) {
+    // 🛡️ Dedupe: Tránh double-dispatch nếu cả 2 websocket connection gửi cùng lúc
+    if (requestId && window.__zai_lastHandledRequestId === requestId) {
+      console.log(`[SendEngine] ⏭️ Duplicate requestId (${requestId}) ignored.`);
+      return;
+    }
+    if (requestId) window.__zai_lastHandledRequestId = requestId;
+
     if (isSearch) {
       console.log('[SendEngine] 🔍 Search mode: sending Z_AI_ENABLE_SEARCH to inject.js');
       window.postMessage({ type: 'Z_AI_ENABLE_SEARCH' }, '*');
@@ -309,11 +346,24 @@
     }
     if (!textarea) return;
 
+    // 2.2 🖱️ Mô phỏng di chuột Bezier tới textarea (Anti-WAF Behavioral)
+    try {
+      const fromX = Math.random() * window.innerWidth * 0.4;
+      const fromY = Math.random() * window.innerHeight * 0.4;
+      const rect = textarea.getBoundingClientRect();
+      console.log('[SendEngine] 🖱️ Simulating human mouse trajectory...');
+      await simulateMouseTrail(fromX, fromY, rect, 200 + Math.floor(Math.random() * 150));
+    } catch (e) {}
+
     // 2.5 Prune old DOM nodes
     pruneOldChatDOM();
 
-    // 3. Điền prompt
-    await setBackgroundAwareInput(textarea, prompt);
+    // 3. Điền prompt (người thật hoặc background)
+    if (prompt.length <= 1200) {
+      await typeLikeHuman(textarea, prompt);
+    } else {
+      await setBackgroundAwareInput(textarea, prompt);
+    }
 
     // 4. Chờ React cập nhật state
     await new Promise((r) => setTimeout(r, 50));
@@ -322,19 +372,28 @@
     textarea = document.querySelector('textarea') || textarea;
     let { sendBtn } = getZAIActionButtons(textarea);
 
+    // Theo dõi stream bắt đầu để tránh double-submit
+    let streamStarted = false;
+    const deltaListener = (e) => {
+      if (e.source === window && (e.data?.type === 'Z_AI_SSE_DELTA' || e.data?.type === 'Z_AI_SSE_DELTAS')) {
+        streamStarted = true;
+      }
+    };
+    window.addEventListener('message', deltaListener);
+
     // 6. Gửi tin
     await dispatchBackgroundAwareSend(textarea, sendBtn);
 
-    // 7. Retry nếu chưa có stream sau 400ms
-    await new Promise((r) => setTimeout(r, 400));
-    // isStreaming không accessible từ MAIN world — dùng flag local
-    // Nếu inject.js đã intercept fetch, stream sẽ bắt đầu; nếu chưa thì retry
-    const { sendBtn: sendBtn2 } = getZAIActionButtons(document.querySelector('textarea') || textarea);
-    if (sendBtn2) {
-      // Nút Send vẫn hiển thị = chưa gửi được → retry
-      console.log('[SendEngine] 🔄 Retry: dispatchBackgroundAwareSend...');
-      textarea = document.querySelector('textarea') || textarea;
-      await dispatchBackgroundAwareSend(textarea, sendBtn2);
+    // 7. Smart Retry: chỉ retry sau 1.5s nếu chưa có stream nào bắt đầu
+    await new Promise((r) => setTimeout(r, 1500));
+    window.removeEventListener('message', deltaListener);
+    if (!streamStarted) {
+      const { sendBtn: sendBtn2 } = getZAIActionButtons(document.querySelector('textarea') || textarea);
+      if (sendBtn2) {
+        console.log('[SendEngine] 🔄 No stream detected after 1500ms — Smart retrying dispatchBackgroundAwareSend...');
+        textarea = document.querySelector('textarea') || textarea;
+        await dispatchBackgroundAwareSend(textarea, sendBtn2);
+      }
     }
   }
 

@@ -40,7 +40,7 @@ exports.DEFAULT_RATE_LIMIT_CONFIG = {
     maxRequestsPerMinute: 10,
     maxRequestsPerHour: 59,
     minIntervalMs: 3000, // 3 seconds between requests
-    cooldownAfterWAFMs: 60000, // 1 minute cooldown after WAF block
+    cooldownAfterWAFMs: 300000, // 5 minutes cooldown after WAF block
 };
 class RateLimiter {
     config;
